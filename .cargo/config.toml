@@ -1,0 +1,6 @@
+[registries.Kesong]
+index = "sparse+https://pkgs.dev.azure.com/Kesong/_packaging/Kesong/Cargo/index/"
+credential-provider = "cargo:token"
+[net]
+retry = 3
+git-fetch-with-cli = true
