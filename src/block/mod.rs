@@ -30,7 +30,10 @@ pub enum CompressionMode {
     FAST(i32),
     /// Default compression
     DEFAULT,
+    STREAMING(i32)
 }
+
+
 
 /// Compresses the full src buffer using the specified CompressionMode, where None and Some(Default)
 /// are treated equally. If prepend_size is set, the source length will be prepended to the output
@@ -94,6 +97,38 @@ pub fn compress(src: &[u8], mode: Option<CompressionMode>, prepend_size: bool) -
                     compress_bound,
                     accel,
                 )
+            },
+            Some(CompressionMode::STREAMING(level)) => unsafe {
+                let preferences = LZ4FPreferences {
+                    frame_info: LZ4FFrameInfo {
+                        block_size_id: BlockSize::Default,
+                        block_mode: BlockMode::Linked,
+                        content_checksum_flag: ContentChecksum::NoChecksum,
+                        frame_type:FrameType::LZ4F_frame,
+                        content_size:1,
+                        dict_id:0,
+                        block_check_sum:0,
+                    },
+                    compression_level: level as u32,
+                    auto_flush: 0,
+                    favor_dec_speed:0,
+                    reserved: [0; 3],
+                };
+                let compress_bound = LZ4F_compressBound(src.len(),&preferences) as i32;
+                let mut compressed:Vec<u8> = vec![
+                    0;
+                    (if prepend_size {
+                        compress_bound + 4
+                    } else {
+                        compress_bound
+                    }) as usize
+                ];
+                let dst_buf = &mut compressed;
+                let ret_size = LZ4F_compressFrame(dst_buf.as_mut_ptr() as *mut c_char, compress_bound, src.as_ptr() as *const c_char, src.len() as i32, 
+                &preferences);
+                compressed.truncate(if prepend_size { ret_size + 4 } else { ret_size } as usize);
+                return Ok(compressed);
+                
             },
             _ => unsafe {
                 LZ4_compress_default(

@@ -70,14 +70,18 @@ impl EncoderBuilder {
                 block_size_id: self.block_size.clone(),
                 block_mode: self.block_mode.clone(),
                 content_checksum_flag: self.checksum.clone(),
-                reserved: [0; 5],
+                frame_type:FrameType::LZ4F_frame,
+                content_size:0,
+                dict_id:0,
+                block_check_sum:0,
             },
             compression_level: self.level,
             auto_flush: match self.auto_flush {
                 false => 0,
                 true => 1,
             },
-            reserved: [0; 4],
+            favor_dec_speed:0,
+            reserved: [0; 3],
         };
         let mut encoder = Encoder {
             w: w,

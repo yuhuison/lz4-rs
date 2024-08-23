@@ -1,7 +1,7 @@
 #![no_std]
 extern crate libc;
 
-use libc::{c_void, c_char, c_uint, size_t, c_int};
+use libc::{c_char, c_int, c_uint, c_ulonglong, c_void, size_t};
 
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -50,13 +50,22 @@ pub enum ContentChecksum {
     NoChecksum = 0,
     ChecksumEnabled,
 }
+#[derive(Clone)]
+#[repr(u32)]
+pub enum FrameType {
+    LZ4F_frame=0,
+    LZ4F_skippableFrame
+}
 
 #[repr(C)]
 pub struct LZ4FFrameInfo {
     pub block_size_id: BlockSize,
     pub block_mode: BlockMode,
     pub content_checksum_flag: ContentChecksum,
-    pub reserved: [c_uint; 5],
+    pub frame_type: FrameType,
+    pub content_size: c_ulonglong,
+    pub dict_id:c_uint,
+    pub block_check_sum:c_uint,
 }
 
 #[repr(C)]
@@ -64,7 +73,8 @@ pub struct LZ4FPreferences {
     pub frame_info: LZ4FFrameInfo,
     pub compression_level: c_uint, // 0 == default (fast mode); values above 16 count as 16
     pub auto_flush: c_uint, // 1 == always flush : reduce need for tmp buffer
-    pub reserved: [c_uint; 4],
+    pub favor_dec_speed: c_uint,
+    pub reserved: [c_uint; 3],
 }
 
 #[repr(C)]
@@ -91,6 +101,9 @@ pub struct LZ4StreamDecode(c_void);
 pub const LZ4F_VERSION: c_uint = 100;
 
 extern "C" {
+
+    #[allow(non_snake_case)]
+    pub fn LZ4F_compressFrame ( dest: *mut c_char,  maxDestSize: c_int,source: *const c_char,sourceSize: c_int, preferencesPtr: *const LZ4FPreferences) -> c_int;
 
     // int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize);
     #[allow(non_snake_case)]
